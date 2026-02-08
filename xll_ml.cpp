@@ -16,18 +16,18 @@ AddIn xai_perceptron_update(
 		Arg(XLL_BOOL, L"y", L"is the label"),
 		Arg(XLL_DOUBLE, L"alpha", L"is the learning rate. (default=1.0)", 1.0)
 		})
-	.FunctionHelp(L"Update perceptron weights input vector and label.")
 	.Category(CATEGORY)
+	.FunctionHelp(L"Update perceptron weights input vector and label.")
 );
-_FP12* WINAPI xll_perceptron_update(_FP12* pw, _FP12*  px, BOOL y, double alpha)
+_FP12* WINAPI xll_perceptron_update(_FP12* pw, _FP12* px, BOOL y, double alpha)
 {
 #pragma XLLEXPORT
 	try {
+		ensure(size(*pw) == size(*px) || !"weight and input vector size mismatch");
+		
 		alpha = alpha ? alpha : 1;
-		auto w = span(*pw);
-		auto x = span(*px);
 
-		update(w, x, y, alpha);
+		update(size(*pw), pw->array, px->array, y, alpha);
 	}
 	catch (const std::exception& ex) {
 		XLL_ERROR(ex.what());
@@ -49,18 +49,17 @@ AddIn xai_perceptron_train(
 		})
 	.Category(CATEGORY)
 	.FunctionHelp(L"Train perceptron weights on single input vector and label.")
-
 );
 _FP12* WINAPI xll_perceptron_train(_FP12* pw, _FP12* px, BOOL y, double alpha, UINT n)
 {
 #pragma XLLEXPORT
 	try {
+		ensure(size(*pw) == size(*px) || !"weight and input vector size mismatch");
+		
 		alpha = alpha ? alpha : 1;
 		n = n ? n : 100;
-		auto w = span(*pw);
-		auto x = span(*px);
 
-		train(w, x, y, alpha);
+		train(size(*pw), pw->array, px->array, y, alpha, n);
 	}
 	catch (const std::exception& ex) {
 		XLL_ERROR(ex.what());
@@ -87,7 +86,7 @@ HANDLEX WINAPI xll_neuron_(_FP12* pw)
 	HANDLEX h = INVALID_HANDLEX;
 
 	try {
-		handle<neuron<>> h_(new neuron<>(span(*pw)));
+		handle<neuron<>> h_(new neuron<>(size(*pw), pw->array));
 		ensure(h_);
 
 		h = h_.get();
@@ -107,7 +106,6 @@ AddIn xai_neuron(
 	.Arguments({
 		Arg(XLL_HANDLEX, L"h", L"is a handle returned by \\NEURON."),
 		})
-		.Uncalced()
 	.Category(CATEGORY)
 	.FunctionHelp(L"Return array of weights.")
 );
@@ -120,22 +118,24 @@ _FP12* WINAPI xll_neuron(HANDLEX h)
 		handle<neuron<>> h_(h);
 		ensure(h_);
 
-		std::span<double> weights = h_->weights();
-		FPX w_((int)weights.size(), 1, weights.data());
+		std::span<double> s = h_->span();
+		FPX w_((int)s.size(), 1, s.data());
 		w.swap(w_);
 	}
 	catch (const std::exception& ex) {
 		XLL_ERROR(ex.what());
+		return 0; // 
 	}
 	catch (...) {
 		XLL_ERROR(__FUNCDNAME__ ": unknown exception");
+		return 0;
 	}
 
 	return w.get();
 }
 
 AddIn xai_neuron_update(
-	Function(XLL_HANDLEX, L"xll_neuron", L"NEURON.UPDATE")
+	Function(XLL_HANDLEX, L"xll_neuron_update", L"NEURON.UPDATE")
 	.Arguments({
 		Arg(XLL_HANDLEX, L"h", L"is a handle to a neuron."),
 		Arg(XLL_FP, L"x", L"is an array representing the input vector."),
@@ -154,9 +154,8 @@ HANDLEX WINAPI xll_neuron_update(HANDLEX h, _FP12* px, BOOL y, double alpha)
 		ensure(h_);
 
 		alpha = alpha ? alpha : 1;
-		auto x = span(*px);
-
-		//ensure (h_->update(x, y, alpha);
+		
+		h_->update(px->array, y, alpha);
 	}
 	catch (const std::exception& ex) {
 		h = INVALID_HANDLEX;
@@ -169,49 +168,44 @@ HANDLEX WINAPI xll_neuron_update(HANDLEX h, _FP12* px, BOOL y, double alpha)
 
 	return h;
 }
-/*
+
 AddIn xai_neuron_train(
-	Function(XLL_FP, L"xll_neuron", L"NEURON.TRAIN")
+	Function(XLL_FP, L"xll_neuron_train", L"NEURON.TRAIN")
 	.Arguments({
 		Arg(XLL_HANDLEX, L"h", L"is a handle to a neuron."),
 		Arg(XLL_FP, L"x", L"is an array representing the input vector."),
-		Arg(XLL_FP, L"y", L"is the label."),
-		Arg(XLL_DOUBLE, L"alpha", L"is the learning rate. (default=1.0)", 1.0),
+		Arg(XLL_BOOL, L"y", L"is the label."),
+		Arg(XLL_DOUBLE, L"alpha", L"is the learning rate. Default 1.", 1.0),
+		Arg(XLL_UINT, L"n", L"is the maximum number of iterations. Default 100.", 100),
 		})
-		.Uncalced()
 	.Category(CATEGORY)
-	.FunctionHelp(L"Create a neuron with given weights.")
+	.FunctionHelp(L"Return {handle, steps} after training a point.")
 );
-_FP12* WINAPI xll_neuron_train(HANDLEX h, _FP12* px, _FP12* py, double alpha)
+_FP12* WINAPI xll_neuron_train(HANDLEX h, _FP12* px, BOOL y, double alpha, UINT n)
 {
 #pragma XLLEXPORT
-	static FPX w;
+	static FPX w(1,2); // 1 x 2 array of doubles
 
 	try {
-		ensure(columns(*px) == size(*py));
-
-		alpha = alpha ? alpha : 1.0;
-
 		handle<neuron<>> h_(h);
 		ensure(h_);
+		ensure(size(*px) == h_->span().size() || !"input vector size mismatch");
 
-		std::vector<std::pair<std::span<double>, int>> xy(size(*py));
-		for (int i = 0; i < size(*py); ++i) {
-			xy[i] = { std::span(xll::row(*px, i)), py->array[i] != 0};
-		}
-		auto data = std::span(xy.begin(), xy.end());
-		h_->train(data, alpha);
+		alpha = alpha ? alpha : 1.0;
+		n = n ? n : 100;
+		auto m = h_->train(px->array, y, alpha, n);
 
-		FPX w_((int)h_->w.size(), 1, h_->w.data());
-		w.swap(w_);
+		w[0] = h;
+		w[1] = static_cast<double>(m);
 	}
 	catch (const std::exception& ex) {
 		XLL_ERROR(ex.what());
+		return 0;
 	}
 	catch (...) {
 		XLL_ERROR(__FUNCDNAME__ ": unknown exception");
+		return 0;
 	}
 
 	return w.get();
 }
-*/
