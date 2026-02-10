@@ -32,7 +32,7 @@ double WINAPI xll_option_cdf(double x, double s, HANDLEX m)
 		XLL_ERROR(ex.what());
 	}
 	catch (...) {
-		XLL_ERROR("xll_option_model_cdf: unknown exception");
+		XLL_ERROR(__FUNCTION__ ": unknown exception");
 	}
 
 	return result;
@@ -65,7 +65,7 @@ double WINAPI xll_black_moneyness(double f, double s, double k, HANDLEX m)
 		XLL_ERROR(ex.what());
 	}
 	catch (...) {
-		XLL_ERROR("xll_option_model_put: unknown exception");
+		XLL_ERROR(__FUNCTION__ ": unknown exception");
 	}
 
 	return result;
@@ -97,8 +97,12 @@ double WINAPI xll_option_black_put(double f, double s, double k, HANDLEX m)
 		XLL_ERROR(ex.what());
 	}
 	catch (...) {
-		XLL_ERROR("xll_option_model_put: unknown exception");
+		XLL_ERROR(__FUNCTION__ ": unknown exception");
 	}
 
 	return result;
 }
+
+// TODO: implement OPTION.BLACK.PUT
+
+// TODO: implement OPTION.BSM.PUT

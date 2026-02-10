@@ -11,11 +11,13 @@ namespace fms::option {
 	struct normal : model<X, S> {
 		using model<X, S>::T;
 
+	private:
 		// Standard normal cumulative distribution function
 		static X cdf(X x)
 		{
 			return 0.5 * (1 + math::erf_as(x / std::numbers::sqrt2));
 		}
+	public:
 		// cumulative distribution function
 		T _cdf(X x, S s) const override
 		{

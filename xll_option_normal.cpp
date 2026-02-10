@@ -8,15 +8,15 @@
 using namespace xll;
 using namespace fms::option;
 
-AddIn xai_option_normal_model(
-	Function(XLL_HANDLEX, L"xll_option_normal_model", L"\\" CATEGORY L".NORMAL")
+AddIn xai_option_normal(
+	Function(XLL_HANDLEX, L"xll_option_normal", L"\\" CATEGORY L".NORMAL")
 	.Arguments({
 		})
 	.Uncalced()
 	.Category(CATEGORY)
 	.FunctionHelp(L"Return handle to normal option pricing model.")
 );
-HANDLEX WINAPI xll_option_normal_model()
+HANDLEX WINAPI xll_option_normal()
 {
 #pragma XLLEXPORT
 	HANDLEX result = INVALID_HANDLEX;
@@ -30,7 +30,7 @@ HANDLEX WINAPI xll_option_normal_model()
 		XLL_ERROR(ex.what());
 	}
 	catch (...) {
-		XLL_ERROR("xll_option_normal: unknown exception");
+		XLL_ERROR(__FUNCTION__ ": unknown exception");
 	}
 	
 	return result;

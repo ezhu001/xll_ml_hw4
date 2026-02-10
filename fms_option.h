@@ -63,26 +63,30 @@ namespace fms::option {
 		}
 		
 		// TODO: implement using put-call parity: call = put + f - k
+		// (F - k)^+ - (k - F)^+ = F - k
 		template<class F = double, class S = double, class K = double>
 		auto call(F f, S s, K k, const model<F, S>& m)
 		{
 			return 0; 
 		}
 
-		// Black-Scholes/Merton model.
-		// In B-S/M F = s0 exp(r t) exp(sigma B_t - sigma^2 t/2)
-		// Since F = f exp(s X - s^2/2),
-		// we have f = s0 exp(r t) and s = sigma * sqrt(t).
+		// In the Black-Scholes/Merton model
+		// F = s0 exp(r t) exp(sigma B_t - sigma^2 t/2)
+		// In the Black model
+		// F = f exp(s X - s^2/2),
+		// so f = s0 exp(r t) and s = sigma * sqrt(t).
 		namespace bsm {
-			// Return f and s Black parameters from B-S/M parameters
+			// Return f and s Black parameters from B-S/M parameters.
+			// tuple<F, S> = {(f, s) | f in F, s in S}
+			// It is a runtime version of struct { F f; S s; }
 			template<class F = double, class S = double>
-			inline std::tuple<F,S> bsm_to_black()
+			inline std::tuple<F,S> bsm_to_black(double r, double s0, double sigma, double t)
 			{	
 				return { s0 * std::exp(r * t), sigma * std::sqrt(t) };
 			}
 
 			template<class F = double, class S = double>
-			inline auto moneyness(double s0, double r, double sigma, double k, double t,
+			inline auto moneyness(double r, double s0, double sigma, double k, double t,
 				const model<F,S>& m)
 			{
 				auto [f, s] = bsm_to_black(s0, r, sigma, t);
@@ -90,7 +94,8 @@ namespace fms::option {
 				return black::moneyness(f, s, k, m);
 			}
 
-			//  TODO: implement bsm::put and bsm::call.
+			// TODO: implement bsm::put and bsm::call.
+			// Hint: use bsm_to_black to get f and s and then call black::put and black::call.
 		}
 	}
 
