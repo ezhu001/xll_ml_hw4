@@ -62,12 +62,12 @@ namespace fms::option {
 			return k * m.cdf(x, 0) - f * m.cdf(x, s);
 		}
 		
-		// TODO: implement using put-call parity: call = put + f - k
+		// TODO: DONE call-put parity
 		// (F - k)^+ - (k - F)^+ = F - k
 		template<class F = double, class S = double, class K = double>
 		auto call(F f, S s, K k, const model<F, S>& m)
 		{
-			return 0; 
+			return put(f,s,k, m) + f - k; 
 		}
 
 		// In the Black-Scholes/Merton model
@@ -89,13 +89,29 @@ namespace fms::option {
 			inline auto moneyness(double r, double s0, double sigma, double k, double t,
 				const model<F,S>& m)
 			{
-				auto [f, s] = bsm_to_black(s0, r, sigma, t);
-				
+				auto [f, s] = bsm_to_black(r, s0, sigma, t);
+				// I think it was wrong here (s0, r, ...) should be (r, s0, ...) as bsm_to_black has the r before the s0
 				return black::moneyness(f, s, k, m);
 			}
 
-			// TODO: implement bsm::put and bsm::call.
-			// Hint: use bsm_to_black to get f and s and then call black::put and black::call.
+			// TODO: DONE bsm::put and bsm::call
+			template<class F = double, class S = double>
+			inline auto put(double r, double s0, double sigma, double k, double t,
+				const model<F, S>& m)
+			{
+				auto [f, s] = bsm_to_black(r, s0, sigma, t);
+
+				return black::put(f, s, k, m);
+			}
+
+			template<class F = double, class S = double>
+			inline auto call(double r, double s0, double sigma, double k, double t,
+				const model<F, S>& m)
+			{
+				auto [f, s] = bsm_to_black(r, s0, sigma, t);
+
+				return black::call(f, s, k, m);
+			}
 		}
 	}
 
