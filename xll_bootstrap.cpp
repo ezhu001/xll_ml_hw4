@@ -17,12 +17,12 @@ handle<curve::pwflat> WINAPI xll_fi_curve_bootstrap(_FP12* pi, _FP12* pp) { ...
 static AddIn xai_fi_curve_bootstrap(
 	Function(XLL_HANDLEX, L"xll_fi_curve_bootstrap", L"\\" CATEGORY L".CURVE.PWFLAT.BOOTSTRAP")
 	.Arguments({
-		Arg(XLL_FP, L"instruments", L"is the vector of instruments."),
+		Arg(XLL_FP, L"instruments", L"is the vector of handles to instruments."),
 		Arg(XLL_FP, L"prices", L"is the vector of instrument prices."),
 		})
 		.Uncalced()
-	.Category(CATEGORY)
-	.FunctionHelp(L"Return a handle to boostrap.")
+		.Category(CATEGORY)
+		.FunctionHelp(L"Return a handle to boostrap.")
 );
 HANDLEX WINAPI xll_fi_curve_bootstrap(_FP12* pi, _FP12* pp)
 {
@@ -38,6 +38,7 @@ HANDLEX WINAPI xll_fi_curve_bootstrap(_FP12* pi, _FP12* pp)
 
 		for (int i = 0; i < size(*pi); ++i) {
 			handle<instrument::base<>> is(pi->array[i]);
+			ensure(is);
 			std::tie(_t, _f) = curve::bootstrap0(*is, f, _t, _f, pp->array[i]);
 			f.push_back(_t, _f);
 		}
